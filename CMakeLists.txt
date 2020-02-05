@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.6.2)
+project(Chatroom)
+add_definitions("-ggdb -pedantic -Wall")
+SET(CMAKE_CXX_FLAGS "-ggdb -pedantic -Wall -Wextra")
+add_executable(server server.c terminal.c)
+add_executable(client client.c terminal.c)

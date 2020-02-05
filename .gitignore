@@ -1,0 +1,8 @@
+Makfile
+*.code-workspace
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+*.exe
+*.stackdump
+/CMakeFiles
