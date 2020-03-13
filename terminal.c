@@ -34,6 +34,7 @@ void reset_input_mode()
     tcsetattr(STDERR_FILENO, TCSANOW, &save);
 }
 
+// Set terminal to non-canonical mode
 void set_terminal_noncanon(struct termios* tp, struct termios* save)
 {
     tcgetattr(STDIN_FILENO, save);
@@ -83,6 +84,7 @@ char read_char()
     return temp_char_buf[0];
 }
 
+// Write an integer to the terminal
 void write_int_to_term(int i)
 {
     char *buf = malloc(MAXDATASIZE);
@@ -91,7 +93,7 @@ void write_int_to_term(int i)
     free(buf);
 }
 
-void write_chat(char *msg, int nbytes)
+void write_to_term(char *msg, int nbytes)
 {
     clear_input_line();
     write(STDOUT_FILENO, msg, nbytes);

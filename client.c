@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
                         printf("Lost connection to server");
                         exit(0);
                     }
-                    write_chat(buf, nbytes);
+                    write_to_term(buf, nbytes);
                 }
                 
                 // User is typing

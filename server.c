@@ -88,7 +88,7 @@ void *get_in_addr(struct sockaddr *sa)
 void send_msg_to_self(char *msg, int nbytes)
 {
     pthread_mutex_lock(&self_terminal_mutex);
-    write_chat(msg, nbytes);
+    write_to_term(msg, nbytes);
     pthread_mutex_unlock(&self_terminal_mutex);
 }
 
@@ -424,7 +424,7 @@ char *prep_client_msg(int clientfd, char *buf)
 
     sprintf(msg, "%s%s%s: %s", terminal_colors[client->text_color], client->username, terminal_colors[0], buf);
 
-    write_chat(client->username, strlen(client->username)+1);
+    write_to_term(client->username, strlen(client->username)+1);
 
     return msg;
 }
@@ -435,7 +435,7 @@ void send_server_to_clients_msg(char *buf)
     char *msg = prep_server_msg(buf);
     int msg_nbytes = strlen(msg);
 
-    write_chat(msg, msg_nbytes);
+    write_to_term(msg, msg_nbytes);
     send_msg_to_clients(msg, msg_nbytes);
     free(msg);
 }
@@ -445,7 +445,7 @@ void send_client_to_clients_msg(int clientfd, char *buf)
 {
     char *msg = prep_client_msg(clientfd, buf);
 
-    write_chat(msg, strlen(msg)+1);
+    write_to_term(msg, strlen(msg)+1);
     send_msg_to_clients(msg, strlen(msg)+1);
     free(msg);
 }
@@ -525,7 +525,7 @@ int main()
                             fdmax = newfd;
                         }
                         nbytes = sprintf(buf, "New connection from %s\n", inet_ntop(remoteaddr.ss_family, get_in_addr((struct sockaddr*)&remoteaddr), remoteIP, INET6_ADDRSTRLEN));
-                        write_chat(buf, nbytes);
+                        write_to_term(buf, nbytes);
 
                         struct thread_info *ti = malloc(sizeof *ti);
                         ti->client_fd = newfd;
