@@ -1,3 +1,8 @@
+/*
+    Handles input to terminal.
+    Sets the terminal to non-canonical mode so that each character input from the keyboard is intercepted and handled.
+*/
+
 #pragma once
 
 // ANSI color codes

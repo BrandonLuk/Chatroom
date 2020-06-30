@@ -1,5 +1,10 @@
+/*
+    Client for chatroom.
+*/
+
 #define _GNU_SOURCE
 
+#include "terminal.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -10,13 +15,15 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include "terminal.h"
 
 #define PORT "54060"
 #define MAXDATASIZE 512
 
 char terminal_buf[MAXDATASIZE];
 int terminal_buf_len;
+
+int sockfd; // Socket that will be associated with this client.
+
 
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -74,13 +81,44 @@ void login_to_server(int sockfd, char* buf)
     write(STDOUT_FILENO, "\n", 1);
 }
 
+void handle_terminal_input(char input)
+{
+    switch (input)
+    {
+        case 3: // Ctrl-c
+            exit(0);
+
+        case 10: // LF
+            clear_input_line();
+            terminal_buf[terminal_buf_len++] = 10; // LF
+            terminal_buf[terminal_buf_len] = '\0';
+            send_msg(sockfd, terminal_buf, terminal_buf_len+1);
+            terminal_buf_len = 0;
+            break;
+
+        case 127: //
+            if(terminal_buf_len > 0)
+            {
+                terminal_buf[--terminal_buf_len] = '\0';
+                write_backspace_to_input_line();
+            }
+            break;
+    
+        default:
+            if(terminal_buf_len < 254)
+            {
+                terminal_buf[terminal_buf_len++] = input;
+            }
+            write_char_to_input_line(input);
+            break;
+    }
+}
+
 int main(int argc, char* argv[])
 {
     fd_set master;
     fd_set read_fds;
     int fdmax;
-
-    int sockfd;
 
     char buf[MAXDATASIZE];
     int nbytes;
@@ -176,35 +214,7 @@ int main(int argc, char* argv[])
                 {
                     c = read_char();
 
-                    switch (c)
-                    {
-                        case 3: // Ctrl-c
-                            exit(0);
-
-                        case 10: // LF
-                            clear_input_line();
-                            terminal_buf[terminal_buf_len++] = 10; // LF
-                            terminal_buf[terminal_buf_len] = '\0';
-                            send_msg(sockfd, terminal_buf, terminal_buf_len+1);
-                            terminal_buf_len = 0;
-                            break;
-
-                        case 127: //
-                            if(terminal_buf_len > 0)
-                            {
-                                terminal_buf[--terminal_buf_len] = '\0';
-                                write_backspace_to_input_line();
-                            }
-                            break;
-                    
-                        default:
-                            if(terminal_buf_len < 254)
-                            {
-                                terminal_buf[terminal_buf_len++] = c;
-                            }
-                            write_char_to_input_line(c);
-                            break;
-                    }
+                    handle_terminal_input(c);
                 }
             }
         }

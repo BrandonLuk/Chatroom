@@ -1,5 +1,11 @@
+/*
+    Server for chatroom.
+*/
+
 #define _GNU_SOURCE
 
+#include "terminal.h"
+#include "notices.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,8 +22,6 @@
 #include <signal.h>
 #include <termios.h>
 #include <pthread.h>
-#include "terminal.h"
-#include "notices.h"
 
 #define PORT "54060"
 #define BACKLOG 10
@@ -196,7 +200,7 @@ int find_empty_userlist_index()
     return -1;
 }
 
-// Check if a message is valid before sending
+// Check if a message is valid
 // A message is valid if it does not contain only spaces or is not of length 0
 int is_valid_message(char *msg)
 {
@@ -273,7 +277,7 @@ int add_client_check_if_space(int clientfd)
 // While adding a client, query them for their desired username
 int add_client_query_username(struct user *u, char *buf, int clientfd)
 {
-    send(clientfd, name_request_msg, name_request_msg_len, 0);
+    send(clientfd, name_request_msg, name_request_msg_nbytes, 0);
     if(recv(clientfd, buf, 256, 0) == 0)
     {
         return 1;
@@ -299,6 +303,7 @@ int add_client_query_color(struct user *u, char *buf, int clientfd)
 
     client_color_response = parse_client_color_selection(buf);
 
+    // The input was not recognized
     if(client_color_response == -1)
     {
 
@@ -351,7 +356,7 @@ void *add_client(void *thread_info_ptr)
     }
 
     // Joining confirmation
-    send(joining_client_fd, server_join_msg, server_join_msg_len, 0);
+    send(joining_client_fd, server_join_msg, server_join_msg_nbytes, 0);
 
     user->sockfd = joining_client_fd;
 
@@ -448,6 +453,43 @@ void send_client_to_clients_msg(int clientfd, char *buf)
     write_to_term(msg, strlen(msg)+1);
     send_msg_to_clients(msg, strlen(msg)+1);
     free(msg);
+}
+
+void handle_terminal_input(char input)
+{
+    switch (input)
+    {
+        case 3: // Ctrl-c
+            exit(0);
+
+        case 10: // LF
+            if(is_valid_message(terminal_buf))
+            {
+                terminal_buf[terminal_buf_len++] = 10; // LF
+                terminal_buf[terminal_buf_len] = '\0';
+                send_server_to_clients_msg(terminal_buf);
+                terminal_buf_len = 0;
+                terminal_buf[terminal_buf_len] = '\0';
+            }
+            break;
+
+        case 127: // Backspace
+            if(terminal_buf_len > 0)
+            {
+                terminal_buf[--terminal_buf_len] = '\0';
+                write_backspace_to_input_line();
+            }
+            break;
+    
+        // The input was not one of the special cases handled above, so send to the input buffer
+        default:
+            if(terminal_buf_len < 254)
+            {
+                terminal_buf[terminal_buf_len++] = input;
+            }
+            write_char_to_input_line(input);
+            break;
+    }
 }
 
 int main()
@@ -555,43 +597,12 @@ int main()
                 {
                     c = read_char();
 
-                    switch (c)
-                    {
-                        case 3: // Ctrl-c
-                            exit(0);
-
-                        case 10: // LF
-                            if(is_valid_message(terminal_buf))
-                            {
-                                //clear_input_line();
-                                terminal_buf[terminal_buf_len++] = 10; // LF
-                                terminal_buf[terminal_buf_len] = '\0';
-                                send_server_to_clients_msg(terminal_buf);
-                                terminal_buf_len = 0;
-                                terminal_buf[terminal_buf_len] = '\0';
-                            }
-                            break;
-
-                        case 127: // Backspace
-                            if(terminal_buf_len > 0)
-                            {
-                                terminal_buf[--terminal_buf_len] = '\0';
-                                write_backspace_to_input_line();
-                            }
-                            break;
-                    
-                        default:
-                            if(terminal_buf_len < 254)
-                            {
-                                terminal_buf[terminal_buf_len++] = c;
-                            }
-                            write_char_to_input_line(c);
-                            break;
-                    }
+                    handle_terminal_input(c);
                 }
                 // Data from a client
                 else
                 {
+                    // The client has disconnected
                     if((nbytes = recv(i, buf, MAXDATASIZE, 0)) <= 0)
                     {
                         if(nbytes == 0)

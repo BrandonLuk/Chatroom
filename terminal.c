@@ -1,9 +1,10 @@
+#include "terminal.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
 #include <string.h>
-#include "terminal.h"
 
 #define MAXDATASIZE 512
 
@@ -24,11 +25,13 @@ char temp_char_buf[1];
 char chat_buf[MAXDATASIZE];
 int chat_buf_len;
 
-static const char clear_line[] = "\33[2K\r";
+static const char clear_line[] = "\33[2K\r"; // Deletes the line and sends cursor back to start
 static const int clear_line_nbytes = 5;
 
 static const char input_line_starter_symbol[] = "> ";
+static const int input_line_starter_symbol_nbytes = sizeof(input_line_starter_symbol);
 
+// Return terminal settings back to normal
 void reset_input_mode()
 {
     tcsetattr(STDERR_FILENO, TCSANOW, &save);
@@ -58,7 +61,7 @@ void init_chat()
 {
     chat_buf_len = 0;
     set_terminal_noncanon(&tp, &save);
-    write(STDOUT_FILENO, input_line_starter_symbol, sizeof(input_line_starter_symbol));
+    write(STDOUT_FILENO, input_line_starter_symbol, input_line_starter_symbol_nbytes);
 }
 
 void write_char_to_input_line(char c)
@@ -84,20 +87,20 @@ char read_char()
     return temp_char_buf[0];
 }
 
-// Write an integer to the terminal
-void write_int_to_term(int i)
-{
-    char *buf = malloc(MAXDATASIZE);
-    sprintf(buf, "%d\n", i);
-    write_chat(buf, strlen(buf));
-    free(buf);
-}
-
 void write_to_term(char *msg, int nbytes)
 {
     clear_input_line();
     write(STDOUT_FILENO, msg, nbytes);
     clear_input_line();
-    write(STDOUT_FILENO, input_line_starter_symbol, sizeof(input_line_starter_symbol));
+    write(STDOUT_FILENO, input_line_starter_symbol, input_line_starter_symbol_nbytes);
     write(STDOUT_FILENO, chat_buf, chat_buf_len);
+}
+
+// Write an integer to the terminal
+void write_int_to_term(int i)
+{
+    char *buf = malloc(MAXDATASIZE);
+    sprintf(buf, "%d\n", i);
+    write_to_term(buf, strlen(buf));
+    free(buf);
 }
